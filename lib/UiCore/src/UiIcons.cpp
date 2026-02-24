@@ -1,0 +1,51 @@
+#include "UiIcons.h"
+
+// Simple recognizable 8x8 glyphs
+
+// Heater: flame-ish
+const unsigned char ICON_HEATER[] U8X8_PROGMEM = {
+  0x18, // 00011000
+  0x3C, // 00111100
+  0x3C,
+  0x7E,
+  0x66,
+  0x66,
+  0x3C,
+  0x18
+};
+
+// Motor: circle with notch
+const unsigned char ICON_MOTOR[] U8X8_PROGMEM = {
+  0x3C,
+  0x42,
+  0x81,
+  0x99,
+  0xA5,
+  0x81,
+  0x42,
+  0x3C
+};
+
+// Fan: 3 blades
+const unsigned char ICON_FAN[] U8X8_PROGMEM = {
+  0x18,
+  0x3C,
+  0x5A,
+  0x99,
+  0x99,
+  0x5A,
+  0x3C,
+  0x18
+};
+
+// Humidifier: droplet
+const unsigned char ICON_HUMID[] U8X8_PROGMEM = {
+  0x18,
+  0x18,
+  0x3C,
+  0x3C,
+  0x7E,
+  0x66,
+  0x66,
+  0x3C
+};

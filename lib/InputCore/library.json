@@ -1,0 +1,5 @@
+{
+  "name": "InputCore",
+  "version": "0.3.0",
+  "build": { "srcDir": "src" }
+}
