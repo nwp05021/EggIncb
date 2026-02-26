@@ -109,33 +109,66 @@ static void syncUiMirrorToCfg() {
 
 static void applyCfgToUiModel() {
   UiModel& m = ui.model();
-  m.scheduleMode   = cfg.scheduleMode;
-  m.incubationDay  = cfg.incubationDay;
+
+  // schedule & date
+  m.scheduleMode  = cfg.scheduleMode;
+  m.incubationDay = cfg.incubationDay;
+
+  m.startYear  = cfg.startYear;
+  m.startMonth = cfg.startMonth;
+  m.startDay   = cfg.startDay;
+
+  // manual targets / hysteresis
   m.targetTemp_x10 = cfg.targetTemp_x10;
   m.tempHyst_x10   = cfg.tempHyst_x10;
-m.targetHum_x10  = cfg.targetHum_x10;
-  m.motorOnSec = cfg.motorOnSec;
+
+  m.targetHum_x10  = cfg.targetHum_x10;
+  m.humHyst_x10    = cfg.humHyst_x10;
+
+  // actuators
+  m.motorOnSec  = cfg.motorOnSec;
   m.motorOffMin = cfg.motorOffMin;
+
+  // UI mirror bools (avoid uint8_t/bool aliasing issues)
+  cfgHeaterEnabled = (cfg.heaterEnabled != 0);
+  cfgMotorEnabled  = (cfg.motorEnabled != 0);
+  cfgFanEnabled    = (cfg.fanEnabled != 0);
+  cfgHumidEnabled  = (cfg.humidifierEnabled != 0);
+
   m.heaterEnabled = cfgHeaterEnabled;
-  m.motorEnabled = cfgMotorEnabled;
-  m.fanEnabled   = cfgFanEnabled;
+  m.motorEnabled  = cfgMotorEnabled;
+  m.fanEnabled    = cfgFanEnabled;
   m.humidifierEnabled = cfgHumidEnabled;
-  m.fanEnabled = (cfg.fanEnabled != 0);
-  m.humidifierEnabled = (cfg.humidifierEnabled != 0);
 }
 
 static void applyUiModelToCfg() {
   UiModel& m = ui.model();
+
+  // schedule & date
   cfg.scheduleMode  = m.scheduleMode;
   cfg.incubationDay = m.incubationDay;
+
+  cfg.startYear  = m.startYear;
+  cfg.startMonth = m.startMonth;
+  cfg.startDay   = m.startDay;
+
+  // manual targets / hysteresis
   cfg.targetTemp_x10 = m.targetTemp_x10;
-  cfg.tempHyst_x10 = m.tempHyst_x10;
-cfg.motorOnSec = m.motorOnSec;
+  cfg.tempHyst_x10   = m.tempHyst_x10;
+
+  cfg.targetHum_x10  = m.targetHum_x10;
+  cfg.humHyst_x10    = m.humHyst_x10;
+
+  // actuators
+  cfg.motorOnSec  = m.motorOnSec;
   cfg.motorOffMin = m.motorOffMin;
+
+  // UI mirror bools
   cfgHeaterEnabled = m.heaterEnabled;
   cfgMotorEnabled  = m.motorEnabled;
   cfgFanEnabled    = m.fanEnabled;
   cfgHumidEnabled  = m.humidifierEnabled;
+
   syncUiMirrorToCfg();
 }
 

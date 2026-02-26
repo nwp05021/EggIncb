@@ -40,11 +40,14 @@ private:
   // 1.3 OLED commonly SH1106. Change to SSD1306 if needed.
   U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2;
 
-  void drawHeader(uint32_t uptimeMs, uint8_t page, bool fault);
+  // Product-style header (title left, status right, divider)
+  void drawHeader(const UiModel& m, uint32_t uptimeMs, bool fault);
   void drawBodyPages(const UiModel& m);
-  void drawFooter(const UiModel& m);
+  // Product-style status bar (icons + subtle info)
+  void drawStatusBar(const UiModel& m, uint32_t uptimeMs);
 
   static void fmtUptime(char* out, size_t outSz, uint32_t uptimeMs);
   static void fmtX10(char* out, size_t outSz, int16_t v_x10);
   void highlightRow(int yTop, int height);
+  static int strW(U8G2& g, const char* s) { return g.getStrWidth(s); }
 };

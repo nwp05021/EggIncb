@@ -68,7 +68,7 @@ private:
 
   int _cursor = 0;
   int _page = 0;
-  static constexpr int PAGE_SIZE = 5;
+  static constexpr int PAGE_SIZE = 4;
 
   // config pointers
   uint8_t* _pScheduleMode = nullptr;
