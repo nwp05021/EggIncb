@@ -22,6 +22,12 @@ static constexpr uint8_t DEFAULT_HUMID_ENABLED   = 0;
 static constexpr uint8_t DEFAULT_SCHEDULE_MODE   = 0;
 static constexpr uint8_t DEFAULT_INCUBATION_DAY  = 1;
 
+// Start date defaults (used for elapsed-day calculation)
+// NOTE: This is only an initial value. User can change it in the settings menu.
+static constexpr uint16_t DEFAULT_START_YEAR  = 2026;
+static constexpr uint8_t  DEFAULT_START_MONTH = 1;
+static constexpr uint8_t  DEFAULT_START_DAY   = 1;
+
 // Safety
 static constexpr int16_t SAFETY_MAX_TEMP_X10     = 450;     // 45.0°C => force heater OFF
 static constexpr uint32_t HEATER_LOCKOUT_MS      = 10000;  // boot lockout

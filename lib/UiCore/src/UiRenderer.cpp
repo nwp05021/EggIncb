@@ -3,6 +3,86 @@
 #include <cstdio>
 #include <cmath>
 
+// 16x16 heater (flame silhouette)
+static const unsigned char icon_heater_16x16[] U8X8_PROGMEM = {
+  0x00,0x00,
+  0x10,0x00,
+  0x38,0x00,
+  0x7C,0x00,
+  0xFE,0x00,
+  0x7C,0x00,
+  0x38,0x00,
+  0x10,0x00,
+  0x10,0x00,
+  0x38,0x00,
+  0x7C,0x00,
+  0x38,0x00,
+  0x10,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00
+};
+
+// 16x16 fan (3 blade)
+static const unsigned char icon_fan_16x16[] U8X8_PROGMEM = {
+  0x00,0x00,
+  0x18,0x00,
+  0x3C,0x00,
+  0x18,0x00,
+  0x7E,0x00,
+  0x18,0x00,
+  0x3C,0x00,
+  0x18,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00
+};
+
+// 16x16 motor (gear-like)
+static const unsigned char icon_motor_16x16[] U8X8_PROGMEM = {
+  0x18,0x00,
+  0x3C,0x00,
+  0x66,0x00,
+  0x42,0x00,
+  0x81,0x00,
+  0x81,0x00,
+  0x42,0x00,
+  0x66,0x00,
+  0x3C,0x00,
+  0x18,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00
+};
+
+// 16x16 water drop
+static const unsigned char icon_humid_16x16[] U8X8_PROGMEM = {
+  0x10,0x00,
+  0x38,0x00,
+  0x7C,0x00,
+  0xFE,0x00,
+  0xFE,0x00,
+  0x7C,0x00,
+  0x38,0x00,
+  0x10,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00,
+  0x00,0x00
+};
+
 UiRenderer::UiRenderer()
 : u8g2(U8G2_R0, U8X8_PIN_NONE) {}
 
@@ -45,24 +125,15 @@ void UiRenderer::highlightRow(int yTop, int height) {
 
 void UiRenderer::drawHeader(const UiModel& m, uint32_t uptimeMs, bool fault) {
   u8g2.setFont(u8g2_font_6x10_tf);
+  u8g2.drawStr(2, 10, m.timeStr);
 
-  // Left: time (uptime HH:MM)
-  char tbuf[16];
-  fmtUptime(tbuf, sizeof(tbuf), uptimeMs);
-  // show HH:MM for a calmer header
-  char hhmm[6];
-  hhmm[0]=tbuf[0]; hhmm[1]=tbuf[1]; hhmm[2]=':'; hhmm[3]=tbuf[3]; hhmm[4]=tbuf[4]; hhmm[5]=0;
-  u8g2.drawStr(2, 10, hhmm);
-
-  // Right: alarm mark or mode + page
-  const bool autoMode = (m.scheduleMode == 0);
-  const char* mode = autoMode ? "AUTO" : "MAN";
-
-  char rbuf[12];
+  // Right: alarm mark or Wi-Fi state + page
+  char rbuf[16];
   if (fault || m.alarm) {
-    snprintf(rbuf, sizeof(rbuf), "! %s", mode);
+    snprintf(rbuf, sizeof(rbuf), "!");
   } else {
-    snprintf(rbuf, sizeof(rbuf), "%s P%u", mode, (unsigned)(m.mainPage + 1));
+    const char* net = m.provisioning ? "BLE" : (m.wifiConnected ? "WiFi" : "----");
+    snprintf(rbuf, sizeof(rbuf), "%s P%u", net, (unsigned)(m.mainPage + 1));
   }
   int rw = strW(u8g2, rbuf);
   u8g2.drawStr(126 - rw, 10, rbuf);
@@ -139,57 +210,135 @@ void UiRenderer::drawBodyPages(const UiModel& m) {
       } else {
         snprintf(buf, sizeof(buf), "HYS  %sC %d%%", tHys, hHys);
       }
-      u8g2.drawStr(2, 34, buf);
+      u8g2.drawStr(30, 24, buf);
 
       break;
     }
 
     case 2: {
-      // System
+      // System (include network)
       u8g2.setFont(u8g2_font_6x10_tf);
       u8g2.drawStr(2, 24, "SYSTEM");
+
+      // Line 1: network
+      const char* net = m.provisioning ? "BLE-PROV" : (m.wifiConnected ? "WiFi:ON" : "WiFi:OFF");
+      u8g2.drawStr(2, 34, net);
+
+      // Line 2: motor schedule
       snprintf(buf, sizeof(buf), "Motor %us/%um", (unsigned)m.motorOnSec, (unsigned)m.motorOffMin);
-      u8g2.drawStr(2, 36, buf);
+      u8g2.drawStr(2, 44, buf);
+
+      // Line 3: actuators quick
       snprintf(buf, sizeof(buf), "Heat %s  Hum %s", m.heaterOn ? "ON" : "OFF", m.humidifierOn ? "ON" : "OFF");
-      u8g2.drawStr(2, 48, buf);
+      u8g2.drawStr(2, 52, buf);
       break;
     }
   }
 }
 
-void UiRenderer::drawStatusBar(const UiModel& m, uint32_t uptimeMs) {
+void UiRenderer::drawStatusBar(const UiModel& m, uint32_t uptimeMs)
+{
   (void)uptimeMs;
-  // Bottom row: 4 clear blocks (HEAT/MOTOR/FAN/HUM). Active = inverted.
-  const int yTop = 54;
-  const int h = 10;
-  u8g2.setDrawColor(1);
-  u8g2.drawHLine(0, yTop, 128);
 
-  struct Item { const char* label; bool on; };
-  Item items[4] = {
-    {"HEAT",  m.heaterOn},
-    {"MOTOR", m.motorOn},
-    {"FAN",   m.fanOn},
-    {"HUM",   m.humidifierOn},
-  };
+  const int footerTop = 52;
+  const int iconY = 53;
+
+  u8g2.drawHLine(0, footerTop - 1, 128);
+
+  // ---- HEATER (원 안 H + 깜박임) ----
+  {
+    int x = 2;
+
+    if (m.heaterOn && (millis()/400)%2==0)
+    {
+      u8g2.setFont(u8g2_font_6x10_tf);
+      u8g2.drawStr(x+3, iconY+10, "H");
+    }
+    else
+    {
+      u8g2.setFont(u8g2_font_6x10_tf);
+      u8g2.drawStr(x+3, iconY+10, "H");
+    }
+  }
+
+  // ---- MOTOR (시소) ----
+  {
+    int x = 22;
+    u8g2.drawDisc(x+6, iconY+8, 1);
+
+    if (m.motorOn)
+    {
+      if ((millis()/600)%2==0)
+        u8g2.drawLine(x+1, iconY+4, x+11, iconY+7);
+      else
+        u8g2.drawLine(x+1, iconY+7, x+11, iconY+4);
+    }
+    else
+    {
+      u8g2.drawLine(x+1, iconY+6, x+11, iconY+6);
+    }
+  }
+
+  // ---- FAN (2프레임 회전) ----
+  {
+    int x = 42;
+    u8g2.drawDisc(x+6, iconY+6, 1);
+
+    if (m.fanOn)
+    {
+      if ((millis()/200)%2==0) {
+        u8g2.drawLine(x+6,iconY+1,x+6,iconY+11);
+        u8g2.drawLine(x+1,iconY+6,x+11,iconY+6);
+      } else {
+        u8g2.drawLine(x+2,iconY+2,x+10,iconY+10);
+        u8g2.drawLine(x+2,iconY+10,x+10,iconY+2);
+      }
+    }
+    else
+    {
+      u8g2.drawLine(x+6,iconY+1,x+6,iconY+11);
+      u8g2.drawLine(x+1,iconY+6,x+11,iconY+6);
+    }
+  }
+
+  // ---- HUMID (점 3개 상승) ----
+  {
+    int x = 62;
+
+    // 기준 막대
+    u8g2.drawLine(x+2, iconY+10, x+10, iconY+10);
+
+    if (m.humidifierOn)
+    {
+      uint8_t frame = (millis()/200)%6;
+      int offsets[3] = { frame, (frame+2)%6, (frame+4)%6 };
+
+      for (int i=0;i<3;i++)
+      {
+        int dy = offsets[i];
+        u8g2.drawDisc(x+3+i*3, iconY+9-dy, 1);
+      }
+    }
+  }
+
+  // ---- D+ ----
+  char buf[10];
+  {
+    uint8_t d = (m.elapsedDay > 0) ? m.elapsedDay : m.incubationDay;
+    // If elapsedDay is not available, fall back to DAY setting.
+    snprintf(buf, sizeof(buf), "D+%02u", (unsigned)d);
+
+    int tw = strW(u8g2, buf);
+    int x = 128 - tw - 4;
+
+    // 얇은 박스 추가
+    u8g2.drawFrame(x - 3, 52, tw + 6, 12);
+    u8g2.drawStr(x, 62, buf);    
+  }
 
   u8g2.setFont(u8g2_font_6x10_tf);
-  for (int i = 0; i < 4; ++i) {
-    int x = i * 32;
-    if (items[i].on) {
-      u8g2.setDrawColor(1);
-      u8g2.drawBox(x, yTop + 1, 32, h);
-      u8g2.setDrawColor(0);
-    } else {
-      u8g2.setDrawColor(1);
-      u8g2.drawFrame(x, yTop + 1, 32, h);
-    }
-
-    int lw = strW(u8g2, items[i].label);
-    int tx = x + (32 - lw) / 2;
-    u8g2.drawStr(tx, 63, items[i].label);
-    u8g2.setDrawColor(1);
-  }
+  int tw = strW(u8g2, buf);
+  u8g2.drawStr(128 - tw - 4, 62, buf);
 }
 
 void UiRenderer::drawMain(const UiModel& m, uint32_t uptimeMs) {

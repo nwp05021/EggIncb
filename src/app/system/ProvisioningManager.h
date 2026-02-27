@@ -12,6 +12,9 @@ public:
   // Stop provisioning session (if active)
   void stopProvisioning();
 
+  // Clear stored Wi-Fi credentials (STA config) and reboot
+  void resetProvisioning();
+
   bool isProvisioning() const { return _provisioning; }
   bool isWifiConnected() const { return _wifiConnected; }
 

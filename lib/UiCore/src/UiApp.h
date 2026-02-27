@@ -19,7 +19,6 @@ public:
   const UiModel& model() const { return _model; }
 
   void bindConfig(uint8_t* scheduleMode,
-                  uint8_t* incubationDay,
                   uint16_t* startYear,
                   uint8_t* startMonth,
                   uint8_t* startDay,

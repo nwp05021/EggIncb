@@ -24,8 +24,13 @@ struct UiModel {
 
   // config mirror (manual targets + schedule)
   uint8_t scheduleMode = 0;      // 0=AUTO, 1=MANUAL
-  uint8_t incubationDay = 1;     // 1..21
 
+  // DAY (config) is used by the incubator schedule in AUTO mode.
+  // elapsedDay is derived from (start date + current time) and is only for display.
+  uint8_t incubationDay = 1;
+  uint8_t elapsedDay = 0;
+
+  // incubation start date (for elapsedDay)
   uint16_t startYear = 0;
   uint8_t  startMonth = 0;
   uint8_t  startDay = 0;
@@ -47,4 +52,6 @@ struct UiModel {
   // UI runtime
   uint8_t mainPage = 0;       // rotate on main
   bool blink = false;
+
+  char timeStr[9];   // "HH:MM:SS"
 };

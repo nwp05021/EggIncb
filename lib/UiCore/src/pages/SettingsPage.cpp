@@ -20,7 +20,6 @@ SettingsPage::SettingsPage(UiModel& m, PageManager& mgr, UiApp* app)
 }
 
 void SettingsPage::bindConfig(uint8_t* scheduleMode,
-                              uint8_t* incubationDay,
                               uint16_t* startYear,
                               uint8_t* startMonth,
                               uint8_t* startDay,
@@ -35,7 +34,6 @@ void SettingsPage::bindConfig(uint8_t* scheduleMode,
                               bool* fanEnabled,
                               bool* humidifierEnabled) {
   _pScheduleMode = scheduleMode;
-  _pDay = incubationDay;
   _pStartYear = startYear;
   _pStartMonth = startMonth;
   _pStartDay = startDay;
@@ -59,7 +57,7 @@ void SettingsPage::syncFromConfig() {
   if (!_pTargetTemp) return;
 
   _m.scheduleMode = *_pScheduleMode;
-  _m.incubationDay = *_pDay;
+
   _m.startYear = *_pStartYear;
   _m.startMonth = *_pStartMonth;
   _m.startDay = *_pStartDay;
@@ -94,18 +92,26 @@ void SettingsPage::onEnter() {
   ensureVisible();
 }
 
-void SettingsPage::onEncoder(int delta) {
-  if (delta == 0) return;
-  int dir = (delta > 0) ? 1 : -1;
+void SettingsPage::onEncoder(int delta)
+{
+    if (delta == 0) return;
 
-  _cursor += dir;
-  if (_cursor < 0) _cursor = itemCount() - 1;
-  if (_cursor >= itemCount()) _cursor = 0;
+    int dir = (delta > 0) ? 1 : -1;
 
-  ensureVisible();
+    _cursor += dir;
+
+    if (_cursor < 0)
+        _cursor = 0;
+
+    if (_cursor >= itemCount())
+        _cursor = itemCount() - 1;
+
+    ensureVisible();
 }
 
-extern void ui_factory_reset(); // defined in main.cpp
+extern void ui_factory_reset();       // defined in main.cpp
+extern void ui_provisioning_reset();  // defined in main.cpp
+extern void ui_time_sync();           // defined in main.cpp
 
 void SettingsPage::onClick() {
   syncFromConfig();
@@ -115,11 +121,6 @@ void SettingsPage::onClick() {
     case SettingItem::ScheduleMode:
       // 0=AUTO, 1=MANUAL
       _edit->configure("SCHED", "", EditType::U8, _pScheduleMode, 0, 1, 1, 1);
-      _mgr.push(_edit);
-      break;
-
-    case SettingItem::IncubationDay:
-      _edit->configure("DAY", "d", EditType::U8, _pDay, 1, 99, 1, 1);
       _mgr.push(_edit);
       break;
 
@@ -188,6 +189,16 @@ void SettingsPage::onClick() {
       _mgr.push(_edit);
       break;
 
+    case SettingItem::TimeSync:
+      _confirm->configure("TIME-SYNC", "Time Sync", "Time Sync?", ui_time_sync);
+      _mgr.push(_confirm);
+      break;
+
+    case SettingItem::ProvisioningReset:
+      _confirm->configure("PROV", "WiFi clear", "BLE setup again?", ui_provisioning_reset);
+      _mgr.push(_confirm);
+      break;
+
     case SettingItem::FactoryReset:
       _confirm->configure("RESET", "Factory reset", "Proceed?", ui_factory_reset);
       _mgr.push(_confirm);
@@ -206,7 +217,6 @@ void SettingsPage::formatValues(char out[][16], int count) {
   for (int i = 0; i < count; ++i) out[i][0] = 0;
 
   snprintf(out[(int)SettingItem::ScheduleMode], 16, "%s", (_m.scheduleMode == 0) ? "AUTO" : "MAN");
-  snprintf(out[(int)SettingItem::IncubationDay], 16, "D+%u", (unsigned)_m.incubationDay);
 
   snprintf(out[(int)SettingItem::StartYear], 16, "%u", (unsigned)_m.startYear);
   snprintf(out[(int)SettingItem::StartMonth], 16, "%02u", (unsigned)_m.startMonth);
@@ -226,6 +236,8 @@ void SettingsPage::formatValues(char out[][16], int count) {
   snprintf(out[(int)SettingItem::FanEnable], 16, "%s", _m.fanEnabled ? "ON" : "OFF");
   snprintf(out[(int)SettingItem::HumidEnable], 16, "%s", _m.humidifierEnabled ? "ON" : "OFF");
 
+  snprintf(out[(int)SettingItem::ProvisioningReset], 16, "!");
+
   snprintf(out[(int)SettingItem::FactoryReset], 16, "!");
   out[(int)SettingItem::Back][0] = 0;
 }
@@ -233,7 +245,6 @@ void SettingsPage::formatValues(char out[][16], int count) {
 void SettingsPage::render(UiRenderer& r) {
   // static const char* labels[] = {
   //   "스케줄",
-  //   "부화일수",
   //   "시작년도",
   //   "시작월",
   //   "시작일",
@@ -252,7 +263,6 @@ void SettingsPage::render(UiRenderer& r) {
   // };
   static const char* labels[] = {
     "SCHED",
-    "DAY",
 
     "SY",
     "SM",
@@ -271,9 +281,15 @@ void SettingsPage::render(UiRenderer& r) {
     "FAN",
     "HUMID",
 
-    "RESET",
+    "TIME SYNC",      // ✅ 추가 (시간 동기화)
+    "PROV",           // ✅ 추가 (ProvisioningReset)
+    "FACTORY RESET",  // FactoryReset
     "BACK"
   };  
+
+
+  static_assert((int)SettingItem::COUNT == (sizeof(labels) / sizeof(labels[0])),
+              "Settings labels count mismatch with SettingItem::COUNT");
 
   static char values[(int)SettingItem::COUNT][16];
   syncFromConfig();

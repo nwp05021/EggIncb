@@ -10,7 +10,6 @@ class ConfirmPage;
 
 enum class SettingItem : uint8_t {
   ScheduleMode,
-  IncubationDay,
 
   StartYear,
   StartMonth,
@@ -30,6 +29,8 @@ enum class SettingItem : uint8_t {
   FanEnable,
   HumidEnable,
 
+  TimeSync,
+  ProvisioningReset,
   FactoryReset,
   Back,
   COUNT
@@ -46,7 +47,6 @@ public:
   void render(class UiRenderer& r) override;
 
   void bindConfig(uint8_t* scheduleMode,
-                  uint8_t* incubationDay,
                   uint16_t* startYear,
                   uint8_t* startMonth,
                   uint8_t* startDay,

@@ -9,7 +9,6 @@ void EncoderController::begin(const EncoderConfig& cfg) {
 
   hal.begin();
   uint8_t initialAB = (uint8_t)((hal.readA() << 1) | hal.readB());
-  //uint8_t initialAB = (uint8_t)((hal.readAFast() << 1) | hal.readBFast());
 
   int initialBtn = hal.readBtn();
 

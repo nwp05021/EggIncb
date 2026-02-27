@@ -24,6 +24,8 @@ public:
   bool fanState() const { return _fan; }
   bool humidifierState() const { return _humid; }
 
+  void setRuntimeDay(uint8_t day) { _runtimeDay = day; }  
+
   int16_t currentTemp_x10() const { return _currentTemp_x10; }
   int16_t currentHum_x10() const { return _currentHum_x10; }
 
@@ -45,6 +47,8 @@ private:
   bool _motor = false;
   bool _fan = false;
   bool _humid = false;
+
+  uint8_t _runtimeDay = 1;
 
   // alarms
   bool _alarm = false;

@@ -18,7 +18,6 @@ void UiApp::begin(UiRenderer* renderer, UiCallbacks cb) {
 }
 
 void UiApp::bindConfig(uint8_t* scheduleMode,
-                       uint8_t* incubationDay,
                        uint16_t* startYear,
                        uint8_t* startMonth,
                        uint8_t* startDay,
@@ -33,7 +32,7 @@ void UiApp::bindConfig(uint8_t* scheduleMode,
                        bool* fanEnabled,
                        bool* humidifierEnabled) {
   _pScheduleMode = scheduleMode;
-  _pDay = incubationDay;
+
   _pStartYear = startYear;
   _pStartMonth = startMonth;
   _pStartDay = startDay;
@@ -51,7 +50,7 @@ void UiApp::bindConfig(uint8_t* scheduleMode,
   _pFanEn    = fanEnabled;
   _pHumidEn  = humidifierEnabled;
 
-  if (_settings) _settings->bindConfig(_pScheduleMode, _pDay,
+  if (_settings) _settings->bindConfig(_pScheduleMode,
                                        _pStartYear, _pStartMonth, _pStartDay,
                                        _pTargetTemp, _pTempHyst,
                                        _pTargetHum, _pHumHyst,
@@ -65,7 +64,7 @@ void UiApp::syncModelFromConfig() {
   if (!_pTargetTemp) return;
 
   _model.scheduleMode = *_pScheduleMode;
-  _model.incubationDay = *_pDay;
+
   _model.startYear = *_pStartYear;
   _model.startMonth = *_pStartMonth;
   _model.startDay = *_pStartDay;

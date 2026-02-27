@@ -1,20 +1,25 @@
 #pragma once
-#include <stdint.h>
+#include <Arduino.h>
 
 class TimeManager {
 public:
-  void begin(uint32_t bootMs, uint32_t lastKnownEpoch);
-  void tick(uint32_t nowMs);
+    void begin();
+    void loop();
 
-  bool hasTime() const { return _hasTime; }
-  uint32_t nowEpoch() const { return _nowEpoch; } // seconds
+    bool isSynced() const;
+    void getTimeString(char* buf, size_t len);
+    time_t now();
 
-  uint8_t incubationDay(uint32_t startEpoch) const;
-
-  void setEpoch(uint32_t epochSec); // future NTP/RTC hook
+    void requestSync();
 
 private:
-  bool _hasTime = false;
-  uint32_t _lastTickMs = 0;
-  uint32_t _nowEpoch = 0; // seconds
+    void loadFromNVS();
+    void saveToNVS(time_t t);
+
+    bool _synced = false;
+    time_t _baseEpoch = 0;
+    unsigned long _baseMillis = 0;
+    unsigned long _lastSyncAttempt = 0;
+
+    bool _forceSync = true; // 부팅시 시간 동기화
 };

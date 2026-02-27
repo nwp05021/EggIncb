@@ -16,7 +16,8 @@ void IncubatorController::begin(const PersistedData& cfg, uint32_t bootMs) {
 }
 
 void IncubatorController::computeTargets() {
-  uint8_t day = _cfg.incubationDay;
+  uint8_t day = _runtimeDay;
+
   if (day < 1) day = 1;
   if (day > 21) day = 21;
 
@@ -35,8 +36,6 @@ void IncubatorController::applyConfig(const PersistedData& cfg) {
 
   if (_cfg.humHyst_x10 <= 0) _cfg.humHyst_x10 = DEFAULT_HUM_HYST_X10;
   if (_cfg.tempHyst_x10 <= 0) _cfg.tempHyst_x10 = DEFAULT_TEMP_HYST_X10;
-  if (_cfg.incubationDay < 1) _cfg.incubationDay = DEFAULT_INCUBATION_DAY;
-  if (_cfg.incubationDay > 21) _cfg.incubationDay = 21;
   if (_cfg.scheduleMode > 1) _cfg.scheduleMode = DEFAULT_SCHEDULE_MODE;
 
   computeTargets();

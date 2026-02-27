@@ -8,6 +8,7 @@
 
 // ESP-IDF helpers
 #include <esp_wifi.h>
+#include <esp_system.h>
 
 static const char* PROV_POP = "incubator";  // Proof-of-possession (change for production)
 static const char* PROV_SERVICE_KEY = nullptr; // optional custom service key (usually nullptr)
@@ -79,6 +80,21 @@ void ProvisioningManager::stopProvisioning() {
   // Once Wi-Fi is connected, provisioning becomes irrelevant.
   _provisioning = false;
 }
+
+void ProvisioningManager::resetProvisioning() {
+  // IMPORTANT: do NOT erase full NVS (it would wipe app settings). Only restore Wi-Fi storage.
+  ensureWifiMode();
+
+  esp_wifi_disconnect();
+  esp_wifi_stop();
+
+  // Restore default Wi-Fi settings in NVS (clears saved STA/AP configs under Wi-Fi namespace)
+  esp_wifi_restore();
+
+  delay(200);
+  esp_restart();
+}
+
 
 void ProvisioningManager::tick(uint32_t nowMs) {
   if (!_started) return;
