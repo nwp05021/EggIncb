@@ -31,7 +31,12 @@ static IncubatorApp* s_app = nullptr;
 static void ui_on_config_changed() {
   if (!s_app) return;
   s_app->syncBoolsToCfg();
-  // 필요하면 settings save dirty 처리도 여기서
+  s_app->markPersistDirty();
+}
+
+void IncubatorApp::markPersistDirty() {
+  _persistDirty = true;
+  _persistDirtyAt = millis();
 }
 
 static EncoderHal_ArduinoEsp32 encHal(PIN_ENCODER_A,
@@ -39,6 +44,67 @@ static EncoderHal_ArduinoEsp32 encHal(PIN_ENCODER_A,
                                       PIN_ENCODER_BTN);
 static EncoderController encoder(encHal);
 static EncoderAccel accel;
+
+static void applyPresetTable(PersistedData& d, uint8_t presetId) {
+  // NOTE: values are x10.
+  // The table is always editable from UI; presets are just "starting points".
+  switch (presetId) {
+    case PRESET_CHICKEN_STD:
+      // Day 1-21: 37.5C / 55%
+      for (int i = 0; i < 21; ++i) {
+        d.dayTemp_x10[i] = 375;
+        d.dayHum_x10[i]  = 550;
+      }
+      break;
+
+    case PRESET_CHICKEN_HATCH:
+      // Day 1-18: 37.5C / 55%
+      // Day 19-21: 37.2C / 70%
+      for (int i = 0; i < 21; ++i) {
+        if (i < 18) {
+          d.dayTemp_x10[i] = 375;
+          d.dayHum_x10[i]  = 550;
+        } else {
+          d.dayTemp_x10[i] = 372;
+          d.dayHum_x10[i]  = 700;
+        }
+      }
+      break;
+
+    case PRESET_CLEAR_CUSTOM:
+    default:
+      for (int i = 0; i < 21; ++i) {
+        d.dayTemp_x10[i] = 0;
+        d.dayHum_x10[i]  = 0;
+      }
+      break;
+  }
+}
+
+static void setDefaults(PersistedData& d) {
+  memset(&d, 0, sizeof(d));
+  d.magic = SETTINGS_MAGIC;
+  d.version = SETTINGS_VERSION;
+
+  d.presetId     = PRESET_CHICKEN_HATCH;
+
+  d.startYear  = DEFAULT_START_YEAR;
+  d.startMonth = DEFAULT_START_MONTH;
+  d.startDay   = DEFAULT_START_DAY;
+
+  d.tempHyst_x10   = DEFAULT_TEMP_HYST_X10;
+  d.humHyst_x10    = DEFAULT_HUM_HYST_X10;
+
+  d.motorOnSec  = DEFAULT_MOTOR_ON_SEC;
+  d.motorOffMin = DEFAULT_MOTOR_OFF_MIN;
+
+  d.heaterEnabled     = DEFAULT_HEATER_ENABLED;
+  d.motorEnabled      = DEFAULT_MOTOR_ENABLED;
+  d.fanEnabled        = DEFAULT_FAN_ENABLED;
+  d.humidifierEnabled = DEFAULT_HUMID_ENABLED;
+
+  applyPresetTable(d, d.presetId);
+}
 
 void IncubatorApp::begin()
 {
@@ -49,10 +115,15 @@ void IncubatorApp::begin()
 
   _settings.begin("incubator");
   if (!_settings.load(_cfg) || _cfg.magic != SETTINGS_MAGIC || _cfg.version != SETTINGS_VERSION) {
-    memset(&_cfg, 0, sizeof(_cfg));
-    _cfg.magic = SETTINGS_MAGIC;
-    _cfg.version = SETTINGS_VERSION;
-    // TODO: 여기서 defaults 세팅 (startYear/Month/Day 포함)
+    Serial.println("[Settings] load failed -> defaults");
+    setDefaults(_cfg);
+    _settings.save(_cfg);
+  }
+
+  // If schedule table is empty (e.g. upgraded struct), seed defaults once.
+  if (_cfg.dayTemp_x10[0] == 0) {
+    if (_cfg.presetId >= PRESET_COUNT) _cfg.presetId = PRESET_CHICKEN_HATCH;
+    applyPresetTable(_cfg, _cfg.presetId);
     _settings.save(_cfg);
   }
 
@@ -75,13 +146,14 @@ void IncubatorApp::begin()
   cb.onConfigChanged = ui_on_config_changed;
   _ui.begin(&_renderer, cb);
 
-  _ui.bindConfig(&_cfg.scheduleMode,
-                &_cfg.startYear,
+  // Settings: start date + hysteresis + motor timing + enables.
+  _ui.bindConfig(&_cfg.startYear,
                 &_cfg.startMonth,
                 &_cfg.startDay,
-                &_cfg.targetTemp_x10,
+                &_cfg.presetId,
+                _cfg.dayTemp_x10,
+                _cfg.dayHum_x10,
                 &_cfg.tempHyst_x10,
-                &_cfg.targetHum_x10,
                 &_cfg.humHyst_x10,
                 &_cfg.motorOnSec,
                 &_cfg.motorOffMin,
@@ -89,12 +161,14 @@ void IncubatorApp::begin()
 
   _prov.begin();
   _timeMgr.begin();
+
+  _lastSaveMs = millis();
 }
 
 void IncubatorApp::tick()
 {
     static uint32_t lastInputMs = 0;
-    const uint32_t INPUT_DEBOUNCE_MS = 3;    
+    const uint32_t INPUT_DEBOUNCE_MS = 3;
 
     uint32_t now = millis();
 
@@ -107,19 +181,23 @@ void IncubatorApp::tick()
         if (e.delta != 0) {
             _ui.onEncoder(e.delta);
             lastInputMs = now;
+            _lastInputMs = now;
         }
 
         if (e.longPress) {
             _ui.onLongPress();
             lastInputMs = now;
+            _lastInputMs = now;
         }
         else if (e.shortPress) {
             _ui.onClick();
             lastInputMs = now;
+            _lastInputMs = now;
         }
         else if (e.veryLongPress) {
             _ui.onVeryLongPress();
             lastInputMs = now;
+            _lastInputMs = now;
         }
     }    
 
@@ -158,11 +236,32 @@ void IncubatorApp::tick()
     m.wifiConnected = _prov.isWifiConnected();
     m.provisioning  = _prov.isProvisioning();
 
+    // ✅ Today targets (Table-only control)
+    {
+      auto tgt = _incubator.targets();
+      m.effectiveTargetTemp_x10 = tgt.temp_x10;
+      m.effectiveTargetHum_x10  = tgt.hum_x10;
+    }
+
     _timeMgr.getTimeString(m.timeStr, sizeof(m.timeStr));
 
     // 5️⃣ 렌더
     _ui.tick(now);
     _ui.render();
+
+    // 6️⃣ 저장 (TABLE 포함) - 사용자 입력 멈춘 뒤 짧게 지연 저장
+    if (_persistDirty &&
+        (now - _persistDirtyAt) > 1200 &&
+        (now - _lastInputMs) > 600 &&
+        (now - _lastSaveMs) > 1200)
+    {
+        _persistDirty = false;
+        _lastSaveMs = now;
+        _cfg.magic = SETTINGS_MAGIC;
+        _cfg.version = SETTINGS_VERSION;
+        _settings.save(_cfg);
+        Serial.println("[Settings] saved");
+    }
 
     if (_factoryResetRequested)
     {
@@ -207,14 +306,13 @@ void IncubatorApp::computeElapsedDay()
 //-----------------------------------------------
 void IncubatorApp::applyRuntimeDay()
 {
-    if (_cfg.scheduleMode == 0)
-    {
-        _incubator.setRuntimeDay(_ui.model().elapsedDay);
-    }
-    else
-    {
-        _incubator.setRuntimeDay(1); // MANUAL 모드에서는 의미 없음
-    }
+    // Day is derived from start date + current time.
+    // If time isn't synced yet, stay at Day 1.
+    uint8_t day = _ui.model().elapsedDay;
+    if (day < 1) day = 1;
+    if (day > 21) day = 21;
+
+    _incubator.setRuntimeDay(day);
 }
 
 //-----------------------------------------------

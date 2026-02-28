@@ -18,13 +18,15 @@ public:
   UiModel& model() { return _model; }
   const UiModel& model() const { return _model; }
 
-  void bindConfig(uint8_t* scheduleMode,
-                  uint16_t* startYear,
+  // Settings: start date + hysteresis + motor timing + actuator enables.
+  // Targets are derived from the incubation schedule table (day -> temp/hum).
+  void bindConfig(uint16_t* startYear,
                   uint8_t* startMonth,
                   uint8_t* startDay,
-                  int16_t* targetTemp_x10,
+                  uint8_t* presetId,
+                  int16_t* dayTempTable_x10,
+                  int16_t* dayHumTable_x10,
                   int16_t* tempHyst_x10,
-                  int16_t* targetHum_x10,
                   int16_t* humHyst_x10,
                   uint16_t* motorOnSec,
                   uint16_t* motorOffMin,
@@ -54,15 +56,13 @@ private:
   PageManager _mgr;
 
   // config pointers (owned by main)
-  uint8_t* _pScheduleMode = nullptr;
-  uint8_t* _pDay = nullptr;
+  uint8_t* _pDay = nullptr; // legacy/backup day (optional)
   uint16_t* _pStartYear = nullptr;
   uint8_t*  _pStartMonth = nullptr;
   uint8_t*  _pStartDay = nullptr;
+  uint8_t*  _pPresetId = nullptr;
 
-  int16_t*  _pTargetTemp = nullptr;
   int16_t*  _pTempHyst   = nullptr;
-  int16_t*  _pTargetHum  = nullptr;
   int16_t*  _pHumHyst    = nullptr;
 
   uint16_t* _pOnSec  = nullptr;

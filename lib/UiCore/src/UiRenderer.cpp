@@ -179,37 +179,31 @@ void UiRenderer::drawBodyPages(const UiModel& m) {
 
     case 1: {
       // Targets
-      char tSet[16], tEff[16], tHys[16];
-      fmtX10(tSet, sizeof(tSet), m.targetTemp_x10);
+      char tEff[16], tHys[16];
       fmtX10(tEff, sizeof(tEff), m.effectiveTargetTemp_x10);
       fmtX10(tHys, sizeof(tHys), m.tempHyst_x10);
 
-      int hSet = (int)(m.targetHum_x10 / 10);
       int hEff = (int)(m.effectiveTargetHum_x10 / 10);
       int hHys = (int)(m.humHyst_x10 / 10);
 
       u8g2.setFont(u8g2_font_6x10_tf);
-      u8g2.drawStr(2, 24, "SET");
+      u8g2.drawStr(2, 24, "TGT");
 
       // Main values
       u8g2.setFont(u8g2_font_logisoso16_tf);
-      u8g2.drawStr(2, 46, tSet);
+      u8g2.drawStr(2, 46, tEff);
       u8g2.setFont(u8g2_font_6x10_tf);
       u8g2.drawStr(38, 46, "C");
 
       u8g2.setFont(u8g2_font_logisoso16_tf);
-      snprintf(buf, sizeof(buf), "%d", hSet);
+      snprintf(buf, sizeof(buf), "%d", hEff);
       u8g2.drawStr(66, 46, buf);
       u8g2.setFont(u8g2_font_6x10_tf);
       u8g2.drawStr(90, 46, "%");
 
       // Sub line
       u8g2.setFont(u8g2_font_6x10_tf);
-      if (m.scheduleMode == 0) {
-        snprintf(buf, sizeof(buf), "AUTO %sC %d%%", tEff, hEff);
-      } else {
-        snprintf(buf, sizeof(buf), "HYS  %sC %d%%", tHys, hHys);
-      }
+      snprintf(buf, sizeof(buf), "HYS %sC %d%%", tHys, hHys);
       u8g2.drawStr(30, 24, buf);
 
       break;
@@ -218,7 +212,8 @@ void UiRenderer::drawBodyPages(const UiModel& m) {
     case 2: {
       // System (include network)
       u8g2.setFont(u8g2_font_6x10_tf);
-      u8g2.drawStr(2, 24, "SYSTEM");
+      // Keep enough bottom margin (status bar starts at y=52)
+      u8g2.drawStr(2, 22, "SYSTEM");
 
       // Line 1: network
       const char* net = m.provisioning ? "BLE-PROV" : (m.wifiConnected ? "WiFi:ON" : "WiFi:OFF");
@@ -226,11 +221,9 @@ void UiRenderer::drawBodyPages(const UiModel& m) {
 
       // Line 2: motor schedule
       snprintf(buf, sizeof(buf), "Motor %us/%um", (unsigned)m.motorOnSec, (unsigned)m.motorOffMin);
-      u8g2.drawStr(2, 44, buf);
+      u8g2.drawStr(2, 46, buf);
 
-      // Line 3: actuators quick
-      snprintf(buf, sizeof(buf), "Heat %s  Hum %s", m.heaterOn ? "ON" : "OFF", m.humidifierOn ? "ON" : "OFF");
-      u8g2.drawStr(2, 52, buf);
+      // (3-line layout only; last line at y=46 to avoid clipping)
       break;
     }
   }
@@ -324,7 +317,7 @@ void UiRenderer::drawStatusBar(const UiModel& m, uint32_t uptimeMs)
   // ---- D+ ----
   char buf[10];
   {
-    uint8_t d = (m.elapsedDay > 0) ? m.elapsedDay : m.incubationDay;
+    uint8_t d = (m.elapsedDay > 0) ? m.elapsedDay : 1;
     // If elapsedDay is not available, fall back to DAY setting.
     snprintf(buf, sizeof(buf), "D+%02u", (unsigned)d);
 
@@ -335,10 +328,6 @@ void UiRenderer::drawStatusBar(const UiModel& m, uint32_t uptimeMs)
     u8g2.drawFrame(x - 3, 52, tw + 6, 12);
     u8g2.drawStr(x, 62, buf);    
   }
-
-  u8g2.setFont(u8g2_font_6x10_tf);
-  int tw = strW(u8g2, buf);
-  u8g2.drawStr(128 - tw - 4, 62, buf);
 }
 
 void UiRenderer::drawMain(const UiModel& m, uint32_t uptimeMs) {

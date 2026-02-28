@@ -22,12 +22,11 @@ struct UiModel {
   int16_t effectiveTargetTemp_x10 = 375;
   int16_t effectiveTargetHum_x10  = 550;
 
-  // config mirror (manual targets + schedule)
-  uint8_t scheduleMode = 0;      // 0=AUTO, 1=MANUAL
+  // schedule
+  uint8_t presetId = 0;
 
-  // DAY (config) is used by the incubator schedule in AUTO mode.
-  // elapsedDay is derived from (start date + current time) and is only for display.
-  uint8_t incubationDay = 1;
+  // elapsedDay is derived from (start date + current time) and is used for display and schedule.
+  // 0 means "unknown" (time not synced yet).
   uint8_t elapsedDay = 0;
 
   // incubation start date (for elapsedDay)
@@ -35,10 +34,7 @@ struct UiModel {
   uint8_t  startMonth = 0;
   uint8_t  startDay = 0;
 
-  int16_t targetTemp_x10 = 375;
   int16_t tempHyst_x10   = 3;
-
-  int16_t targetHum_x10  = 550;
   int16_t humHyst_x10    = 30;
 
   uint16_t motorOnSec = 10;

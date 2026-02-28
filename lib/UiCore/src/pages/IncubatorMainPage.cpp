@@ -12,8 +12,9 @@ void IncubatorMainPage::onEncoder(int delta) {
 
   const uint8_t maxPage = 2; // P1..P3 currently
   int p = (int)_m.mainPage + dir;
-  if (p < 0) p = maxPage;
-  if (p > (int)maxPage) p = 0;
+  // Clamp at both ends (no wrap)
+  if (p < 0) p = 0;
+  if (p > (int)maxPage) p = (int)maxPage;
   _m.mainPage = (uint8_t)p;
 }
 

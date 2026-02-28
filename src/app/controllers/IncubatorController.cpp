@@ -21,13 +21,18 @@ void IncubatorController::computeTargets() {
   if (day < 1) day = 1;
   if (day > 21) day = 21;
 
-  if (_cfg.scheduleMode == 0) {
+  // Prefer persisted per-day table (editable from UI). Fallback to compiled-in defaults.
+  const int idx = (int)day - 1;
+  const int16_t tblTemp = _cfg.dayTemp_x10[idx];
+  const int16_t tblHum  = _cfg.dayHum_x10[idx];
+
+  if (tblTemp != 0) {
+    _targets.temp_x10 = tblTemp;
+    _targets.hum_x10  = (tblHum != 0) ? tblHum : _targets.hum_x10;
+  } else {
     auto t = IncubationSchedule::targetsForDay(day);
     _targets.temp_x10 = t.temp_x10;
     _targets.hum_x10  = t.hum_x10;
-  } else {
-    _targets.temp_x10 = _cfg.targetTemp_x10;
-    _targets.hum_x10  = _cfg.targetHum_x10;
   }
 }
 
@@ -36,7 +41,7 @@ void IncubatorController::applyConfig(const PersistedData& cfg) {
 
   if (_cfg.humHyst_x10 <= 0) _cfg.humHyst_x10 = DEFAULT_HUM_HYST_X10;
   if (_cfg.tempHyst_x10 <= 0) _cfg.tempHyst_x10 = DEFAULT_TEMP_HYST_X10;
-  if (_cfg.scheduleMode > 1) _cfg.scheduleMode = DEFAULT_SCHEDULE_MODE;
+  // Day comes from IncubatorApp (derived from start date + current time).
 
   computeTargets();
 

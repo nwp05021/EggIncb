@@ -6,16 +6,17 @@ struct PersistedData {
   uint32_t magic;
   uint16_t version;
 
-  // Manual targets (x10)
-  int16_t  targetTemp_x10;
+  // Hysteresis (x10)
   int16_t  tempHyst_x10;
-
-  int16_t  targetHum_x10;
   int16_t  humHyst_x10;
 
   // Schedule
-  uint8_t  scheduleMode;    // 0=AUTO, 1=MANUAL
-  uint8_t  incubationDay;   // 1..21 (AUTO updates)
+  uint8_t  presetId;        // PRESET_* (fills day table)
+
+  // Per-day targets table (Day 1..21)
+  // Stored in x10 units: 37.5C => 375, 55.0% => 550
+  int16_t  dayTemp_x10[21];
+  int16_t  dayHum_x10[21];
 
   // Actuators
   uint16_t motorOnSec;

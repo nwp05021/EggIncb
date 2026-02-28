@@ -23,6 +23,7 @@ public:
   void requestTimeSync();
 
   void syncBoolsToCfg();
+  void markPersistDirty();
 
 private:
   SettingsStore _settings;
@@ -46,4 +47,10 @@ private:
   bool _humidEn  = false;
 
   bool _factoryResetRequested = false;
+
+  // Persist policy (debounced) so TABLE edits survive reboot
+  bool _persistDirty = false;
+  uint32_t _persistDirtyAt = 0;
+  uint32_t _lastInputMs = 0;
+  uint32_t _lastSaveMs = 0;
 };

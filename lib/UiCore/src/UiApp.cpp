@@ -17,13 +17,13 @@ void UiApp::begin(UiRenderer* renderer, UiCallbacks cb) {
   _mgr.push(_main);
 }
 
-void UiApp::bindConfig(uint8_t* scheduleMode,
-                       uint16_t* startYear,
+void UiApp::bindConfig(uint16_t* startYear,
                        uint8_t* startMonth,
                        uint8_t* startDay,
-                       int16_t* targetTemp_x10,
+                       uint8_t* presetId,
+                       int16_t* dayTempTable_x10,
+                       int16_t* dayHumTable_x10,
                        int16_t* tempHyst_x10,
-                       int16_t* targetHum_x10,
                        int16_t* humHyst_x10,
                        uint16_t* motorOnSec,
                        uint16_t* motorOffMin,
@@ -31,15 +31,11 @@ void UiApp::bindConfig(uint8_t* scheduleMode,
                        bool* motorEnabled,
                        bool* fanEnabled,
                        bool* humidifierEnabled) {
-  _pScheduleMode = scheduleMode;
-
   _pStartYear = startYear;
   _pStartMonth = startMonth;
   _pStartDay = startDay;
-
-  _pTargetTemp = targetTemp_x10;
+  _pPresetId = presetId;
   _pTempHyst = tempHyst_x10;
-  _pTargetHum = targetHum_x10;
   _pHumHyst = humHyst_x10;
 
   _pOnSec = motorOnSec;
@@ -50,10 +46,9 @@ void UiApp::bindConfig(uint8_t* scheduleMode,
   _pFanEn    = fanEnabled;
   _pHumidEn  = humidifierEnabled;
 
-  if (_settings) _settings->bindConfig(_pScheduleMode,
-                                       _pStartYear, _pStartMonth, _pStartDay,
-                                       _pTargetTemp, _pTempHyst,
-                                       _pTargetHum, _pHumHyst,
+  if (_settings) _settings->bindConfig(_pStartYear, _pStartMonth, _pStartDay, _pPresetId,
+                                       dayTempTable_x10, dayHumTable_x10,
+                                       _pTempHyst, _pHumHyst,
                                        _pOnSec, _pOffMin,
                                        _pHeaterEn, _pMotorEn, _pFanEn, _pHumidEn);
 
@@ -61,18 +56,13 @@ void UiApp::bindConfig(uint8_t* scheduleMode,
 }
 
 void UiApp::syncModelFromConfig() {
-  if (!_pTargetTemp) return;
-
-  _model.scheduleMode = *_pScheduleMode;
+  if (!_pTempHyst) return;
 
   _model.startYear = *_pStartYear;
   _model.startMonth = *_pStartMonth;
   _model.startDay = *_pStartDay;
 
-  _model.targetTemp_x10 = *_pTargetTemp;
   _model.tempHyst_x10 = *_pTempHyst;
-
-  _model.targetHum_x10 = *_pTargetHum;
   _model.humHyst_x10 = *_pHumHyst;
 
   _model.motorOnSec = *_pOnSec;
